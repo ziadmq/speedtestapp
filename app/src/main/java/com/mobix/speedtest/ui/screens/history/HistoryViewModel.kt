@@ -16,11 +16,6 @@ class HistoryViewModel @Inject constructor(
     private val repository: SpeedTestRepository
 ) : ViewModel() {
 
-    /**
-     * جلب سجل الاختبارات وتحويله من Flow إلى StateFlow.
-     * SharingStarted.WhileSubscribed(5000) يضمن إيقاف جمع البيانات عند عدم استخدام الشاشة
-     * لتوفير موارد الجهاز.
-     */
     val historyList: StateFlow<List<SpeedResult>> = repository.getHistory()
         .stateIn(
             scope = viewModelScope,
@@ -28,10 +23,6 @@ class HistoryViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
-    /**
-     * دالة لحذف نتيجة اختبار معينة من السجل.
-     * يتم تنفيذ الحذف في Coroutine لضمان عدم تعليق واجهة المستخدم.
-     */
     fun deleteResult(result: SpeedResult) {
         viewModelScope.launch {
             repository.deleteResult(result)
