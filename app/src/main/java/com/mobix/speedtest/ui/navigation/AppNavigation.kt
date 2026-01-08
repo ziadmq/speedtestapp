@@ -3,6 +3,7 @@ package com.mobix.speedtest.ui.navigation
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.*
 import com.mobix.speedtest.ui.screens.home.HomeScreen
+import com.mobix.speedtest.ui.screens.history.HistoryScreen // تأكد من الاستيراد
 
 @Composable
 fun AppNavigation() {
@@ -12,7 +13,7 @@ fun AppNavigation() {
             HomeScreen(onNavigateToHistory = { navController.navigate("history") })
         }
         composable("history") {
-            // هنا تضع شاشة HistoryScreen التي سننشئها
+            HistoryScreen()
         }
     }
 }
