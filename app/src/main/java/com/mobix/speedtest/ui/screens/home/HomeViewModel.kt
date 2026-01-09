@@ -28,8 +28,7 @@ class HomeViewModel @Inject constructor(
                 _uiState.value = result
             }
             _isTesting.value = false
-            // حفظ النتيجة النهائية بعد انتهاء الاختبار
-            uiState.value?.let { repository.saveResult(it) }
+            // تم حذف حفظ النتيجة هنا لأنك لا تريد السجل
         }
     }
 }

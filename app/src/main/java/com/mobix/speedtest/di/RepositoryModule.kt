@@ -13,6 +13,6 @@ import javax.inject.Singleton
 object RepositoryModule {
     @Provides
     @Singleton
-    fun provideRepository(dao: HistoryDao): SpeedTestRepository =
-        SpeedTestRepositoryImpl(dao)
+    fun provideRepository(): SpeedTestRepository =
+        SpeedTestRepositoryImpl() // تم إزالة الـ dao نهائياً
 }

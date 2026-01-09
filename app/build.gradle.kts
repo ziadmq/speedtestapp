@@ -2,7 +2,10 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.hilt.android)
+
+    // بدل alias(libs.plugins.hilt.android)
+    id("com.google.dagger.hilt.android")
+
     id("kotlin-kapt")
 }
 
@@ -30,11 +33,11 @@ android {
         }
     }
 
-    // إصلاح تعارض إصدارات JVM Target بتوحيدها على نسخة 17
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
     kotlinOptions {
         jvmTarget = "17"
     }
@@ -58,12 +61,13 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-
-    // Hilt Dependency Injection
-    implementation(libs.hilt.android)
-    kapt(libs.hilt.compiler)
-    implementation(libs.hilt.navigation.compose)
     implementation(libs.androidx.material.icons.extended)
+
+    // Hilt Dependency Injection (FIX: use latest compatible with Kotlin metadata 2.2.0)
+    implementation("com.google.dagger:hilt-android:2.57.2")
+    kapt("com.google.dagger:hilt-compiler:2.57.2")
+    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+
     // Room Database
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
@@ -72,6 +76,13 @@ dependencies {
     // Navigation and Utilities
     implementation("androidx.navigation:navigation-compose:2.8.5")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // CameraX
+    implementation("androidx.camera:camera-camera2:1.3.1")
+    implementation("androidx.camera:camera-lifecycle:1.3.1")
+
+    // SceneView (AR + Compose)
+    implementation("io.github.sceneview:arsceneview:2.3.1")
 
     // Testing
     testImplementation(libs.junit)

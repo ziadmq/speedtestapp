@@ -7,14 +7,11 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.map
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
-import okio.BufferedSink
-import org.json.JSONObject // تأكد من استيراد هذه المكتبة لمعالجة الـ JSON
-import java.io.IOException
+import org.json.JSONObject
 import java.util.Date
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
@@ -22,8 +19,7 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-class SpeedTestRepositoryImpl(
-) : SpeedTestRepository {
+class SpeedTestRepositoryImpl : SpeedTestRepository {
 
     private val client = OkHttpClient.Builder()
         .retryOnConnectionFailure(true)
@@ -35,18 +31,15 @@ class SpeedTestRepositoryImpl(
     private val downloadUrl = "https://speed.cloudflare.com/__down?bytes=50000000"
     private val pingUrl = "https://speed.cloudflare.com/__down?bytes=1"
     private val uploadUrl = "https://speed.cloudflare.com/__up"
-    private val ipApiUrl = "http://ip-api.com/json" // خدمة لجلب الـ IP والـ ISP
 
     private val parallelConnections = 4
     private val tickMs = 250L
     private val testDurationMs = 10_000L
 
     override fun startSpeedTest(): Flow<SpeedResult> = flow {
-        // 1) جلب معلومات الـ IP والـ ISP أولاً
         emit(SpeedResult(serverName = "جاري التعرف على الشبكة..."))
         val networkInfo = fetchNetworkInfo()
 
-        // 2) قياس Ping و Jitter
         emit(SpeedResult(
             serverName = "جاري حساب Ping...",
             ipAddress = networkInfo.first,
@@ -67,93 +60,40 @@ class SpeedTestRepositoryImpl(
         )
         emit(current)
 
-        // 3) اختبار التحميل
         emit(current.copy(serverName = "جاري اختبار التحميل..."))
         val dl = runDownloadTest(durationMs = testDurationMs) { instant, maxVal, avgVal ->
-            emit(current.copy(
-                downloadSpeed = instant,
-                maxDownloadSpeed = maxVal,
-                avgDownloadSpeed = avgVal
-            ))
+            emit(current.copy(downloadSpeed = instant, maxDownloadSpeed = maxVal, avgDownloadSpeed = avgVal))
         }
-        current = current.copy(
-            downloadSpeed = dl.avgMbps,
-            maxDownloadSpeed = dl.maxMbps,
-            avgDownloadSpeed = dl.avgMbps
-        )
+        current = current.copy(downloadSpeed = dl.avgMbps, maxDownloadSpeed = dl.maxMbps, avgDownloadSpeed = dl.avgMbps)
 
-        // 4) اختبار الرفع
         emit(current.copy(serverName = "جاري اختبار الرفع..."))
         val ul = runUploadTest(durationMs = testDurationMs) { instant, maxVal, avgVal ->
-            emit(current.copy(
-                uploadSpeed = instant,
-                maxUploadSpeed = maxVal,
-                avgUploadSpeed = avgVal
-            ))
+            emit(current.copy(uploadSpeed = instant, maxUploadSpeed = maxVal, avgUploadSpeed = avgVal))
         }
 
-        val finalResult = current.copy(
-            uploadSpeed = ul.avgMbps,
-            maxUploadSpeed = ul.maxMbps,
-            avgUploadSpeed = ul.avgMbps,
-            serverName = "اكتمل الاختبار"
-        )
-        emit(finalResult)
+        emit(current.copy(uploadSpeed = ul.avgMbps, maxUploadSpeed = ul.maxMbps, avgUploadSpeed = ul.avgMbps, serverName = "اكتمل الاختبار"))
 
     }.flowOn(Dispatchers.IO)
 
-    override suspend fun saveResult(result: SpeedResult) {
-        TODO("Not yet implemented")
-    }
-
-    override fun getHistory(): Flow<List<SpeedResult>> {
-        TODO("Not yet implemented")
-    }
-
-    override suspend fun deleteResult(result: SpeedResult) {
-        TODO("Not yet implemented")
-    }
+    // ... (دوال fetchNetworkInfo و measureRealPingStats و runDownloadTest و runUploadTest كما هي لديك)
+    // ملاحظة: تأكد من بقاء منطق قياس السرعة كما هو في الكود السابق لديك
 
     private suspend fun fetchNetworkInfo(): Pair<String, String> = withContext(Dispatchers.IO) {
-        // استخدمنا رابطاً يدعم HTTPS لضمان التوافق والأمان
         val apiUrl = "https://ipapi.co/json/"
-
         try {
-            val request = Request.Builder()
-                .url(apiUrl)
-                .header("User-Agent", "Mozilla/5.0") // بعض الخدمات تطلب User-Agent
-                .build()
-
+            val request = Request.Builder().url(apiUrl).header("User-Agent", "Mozilla/5.0").build()
             client.newCall(request).execute().use { response ->
                 if (response.isSuccessful) {
-                    val bodyString = response.body?.string() ?: ""
-                    if (bodyString.isNotEmpty()) {
-                        val jsonData = JSONObject(bodyString)
-                        // في ipapi.co الحقول هي 'ip' و 'org' أو 'asn'
-                        val ip = jsonData.optString("ip", "Unknown IP")
-                        val isp = jsonData.optString("org", "Unknown ISP")
-                        Pair(ip, isp)
-                    } else {
-                        Pair("N/A", "Empty Response")
-                    }
-                } else {
-                    Pair("Error ${response.code}", "Server Error")
-                }
+                    val jsonData = JSONObject(response.body?.string() ?: "")
+                    Pair(jsonData.optString("ip", "Unknown IP"), jsonData.optString("org", "Unknown ISP"))
+                } else Pair("N/A", "Server Error")
             }
-        } catch (e: Exception) {
-            // طباعة الخطأ في Logcat لتسهيل التصحيح
-            e.printStackTrace()
-            Pair("Offline", "Check Connection")
-        }
+        } catch (e: Exception) { Pair("Offline", "Check Connection") }
     }
 
     private fun measureRealPingStats(url: String, attempts: Int): PingStats {
         val rtts = mutableListOf<Long>()
         var failed = 0
-        try {
-            client.newCall(Request.Builder().url(url).head().build()).execute().close()
-        } catch (_: Exception) {}
-
         repeat(attempts) {
             val start = System.nanoTime()
             try {
@@ -162,24 +102,15 @@ class SpeedTestRepositoryImpl(
                 }
             } catch (_: Exception) { failed++ }
         }
-        return PingStats(
-            minMs = rtts.minOrNull()?.toDouble() ?: 999.0,
-            avgMs = rtts.average(),
-            jitterMs = if (rtts.size >= 2) rtts.zipWithNext { a, b -> abs(a - b).toDouble() }.average() else 0.0,
-            lossPercent = (failed.toDouble() / attempts) * 100.0
-        )
+        return PingStats(rtts.minOrNull()?.toDouble() ?: 999.0, rtts.average(), if (rtts.size >= 2) rtts.zipWithNext { a, b -> abs(a - b).toDouble() }.average() else 0.0, (failed.toDouble() / attempts) * 100.0)
     }
 
-    private fun bytesToMbps(bytes: Long, seconds: Double): Double {
-        if (seconds <= 0.0) return 0.0
-        return (bytes * 8.0) / (seconds * 1_000_000.0)
-    }
+    private fun bytesToMbps(bytes: Long, seconds: Double): Double = if (seconds <= 0.0) 0.0 else (bytes * 8.0) / (seconds * 1_000_000.0)
 
     private suspend fun runDownloadTest(durationMs: Long, onUpdate: suspend (Double, Double, Double) -> Unit): SpeedMeasure = coroutineScope {
         val totalBytes = AtomicLong(0L)
         val start = SystemClock.elapsedRealtime()
         val endAt = start + durationMs
-
         val jobs = List(parallelConnections) {
             launch(Dispatchers.IO) {
                 val buffer = ByteArray(64 * 1024)
@@ -197,12 +128,10 @@ class SpeedTestRepositoryImpl(
                 }
             }
         }
-
         var maxMbps = 0.0
         while (SystemClock.elapsedRealtime() < endAt) {
             delay(tickMs)
-            val now = SystemClock.elapsedRealtime()
-            val elapsed = (now - start) / 1000.0
+            val elapsed = (SystemClock.elapsedRealtime() - start) / 1000.0
             val currentMbps = bytesToMbps(totalBytes.get(), elapsed)
             maxMbps = max(maxMbps, currentMbps)
             onUpdate(currentMbps, maxMbps, currentMbps)
@@ -215,7 +144,6 @@ class SpeedTestRepositoryImpl(
         val totalBytes = AtomicLong(0L)
         val start = SystemClock.elapsedRealtime()
         val endAt = start + durationMs
-
         val jobs = List(parallelConnections) {
             launch(Dispatchers.IO) {
                 while (isActive && SystemClock.elapsedRealtime() < endAt) {
@@ -235,7 +163,6 @@ class SpeedTestRepositoryImpl(
                 }
             }
         }
-
         var maxMbps = 0.0
         while (SystemClock.elapsedRealtime() < endAt) {
             delay(tickMs)
@@ -250,7 +177,6 @@ class SpeedTestRepositoryImpl(
 
     private data class PingStats(val minMs: Double, val avgMs: Double, val jitterMs: Double, val lossPercent: Double)
     private data class SpeedMeasure(val avgMbps: Double, val maxMbps: Double)
-
 }
 
 
