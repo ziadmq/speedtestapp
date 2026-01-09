@@ -1,6 +1,5 @@
 package com.mobix.speedtest.di
 
-import com.mobix.speedtest.data.local.HistoryDao
 import com.mobix.speedtest.data.repository.SpeedTestRepositoryImpl
 import com.mobix.speedtest.domain.repository.SpeedTestRepository
 import dagger.Module

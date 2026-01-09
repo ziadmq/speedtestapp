@@ -3,7 +3,7 @@ package com.mobix.speedtest.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // الألوان الأساسية (Modern High-Tech)
-val PrimaryBlue = Color(0xFF0052FF)
+val PrimaryBlue = Color(0xFF00D1FF)
 val PrimaryLight = Color(0xFF0091FF)
 val DarkBackground = Color(0xFF000E19)
 val SurfaceColor = Color(0xFF001A29)
@@ -15,3 +15,6 @@ val SpeedSlow = Color(0xFFFF4757)
 
 val TextPrimary = Color.White
 val TextSecondary = Color(0xFFA0AEC0)
+val SecondaryCyan = Color(0xFF00FFC2)
+val BackgroundDark = Color(0xFF060B12)
+val SurfaceDark = Color(0xFF121A26)

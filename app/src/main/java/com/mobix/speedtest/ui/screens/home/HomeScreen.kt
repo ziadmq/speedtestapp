@@ -1,13 +1,14 @@
 package com.mobix.speedtest.ui.screens.home
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,7 +21,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.mobix.speedtest.domain.models.SpeedResult
 
 @Composable
 fun HomeScreen(
@@ -30,121 +30,168 @@ fun HomeScreen(
     val result by viewModel.uiState.collectAsState()
     val isTesting by viewModel.isTesting.collectAsState()
 
-    // تعريف الألوان هنا لاستخدامها داخل الـ Canvas لاحقاً (حل الخطأ)
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val tertiaryColor = MaterialTheme.colorScheme.tertiary
-
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(16.dp),
+            .background(Color(0xFF060B12)) // خلفية داكنة احترافية
+            .padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // الشريط العلوي
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("MOBIX SPEED", fontWeight = FontWeight.Black, color = primaryColor)
-            IconButton(onClick = onNavigateToHistory) {
-                Icon(Icons.Default.History, contentDescription = "History", tint = primaryColor)
+        // --- 1. الجزء العلوي (العنوان والسجل) ---
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "MOBIX SPEED",
+                style = MaterialTheme.typography.titleLarge,
+                color = Color.White,
+                fontWeight = FontWeight.Black
+            )
+            IconButton(
+                onClick = onNavigateToHistory,
+                modifier = Modifier.background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+            ) {
+                Icon(Icons.Default.History, contentDescription = "History", tint = Color.White)
             }
         }
 
-        // كروت الجودة (Ping, Jitter, Loss)
-        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-            StatItem("PING", "${result?.ping ?: "--"}", "ms")
-            StatItem("JITTER", "${result?.jitter ?: "--"}", "ms")
-            StatItem("LOSS", "${result?.packetLoss ?: "0.0"}", "%")
+        Spacer(modifier = Modifier.height(30.dp))
+
+        // --- 2. مؤشرات الجودة (Ping, Jitter) ---
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            QualityIndicator("PING", "${result?.ping ?: "--"}", "ms")
+            QualityIndicator("JITTER", "${result?.jitter ?: "--"}", "ms")
+            QualityIndicator("LOSS", "${result?.packetLoss?.toInt() ?: "0"}", "%")
         }
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // العداد الاحترافي مع حل مشكلة الـ Composable context
-        Speedometer(
+        // --- 3. العداد التفاعلي (Interactive Speedometer) ---
+        InteractiveSpeedometer(
             speed = result?.downloadSpeed ?: 0.0,
-            color = primaryColor
+            isTesting = isTesting
         )
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // إحصائيات التحميل والرفع المفصلة
+        // --- 4. تفاصيل السرعة الحية (Live Stats) ---
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-            DetailedSpeedView("DOWNLOAD", result?.downloadSpeed ?: 0.0, result?.maxDownloadSpeed ?: 0.0, result?.avgDownloadSpeed ?: 0.0)
-            DetailedSpeedView("UPLOAD", result?.uploadSpeed ?: 0.0, result?.maxUploadSpeed ?: 0.0, result?.avgUploadSpeed ?: 0.0)
+            SpeedStatBox("DOWNLOAD", result?.downloadSpeed ?: 0.0, result?.maxDownloadSpeed ?: 0.0)
+            SpeedStatBox("UPLOAD", result?.uploadSpeed ?: 0.0, result?.maxUploadSpeed ?: 0.0)
         }
 
-        // بطاقة معلومات الشبكة
-        NetworkInfoCard(result)
+        Spacer(modifier = Modifier.height(30.dp))
+
+        // --- 5. معلومات الشبكة والـ IP ---
+        NetworkCard(ip = result?.ipAddress ?: "---.---.---.---", isp = result?.isp ?: "جاري التعرف...")
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // زر التحكم
+        // --- 6. زر التحكم الرئيسي ---
         Button(
             onClick = { viewModel.startTest() },
             enabled = !isTesting,
-            modifier = Modifier.fillMaxWidth().height(60.dp),
-            shape = RoundedCornerShape(16.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(65.dp),
+            shape = RoundedCornerShape(20.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF00D1FF),
+                disabledContainerColor = Color.Gray.copy(alpha = 0.3f)
+            )
         ) {
-            Text(if (isTesting) "جاري الاختبار..." else "ابدأ الفحص", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-        }
-    }
-}
-
-@Composable
-fun Speedometer(speed: Double, color: Color) {
-    val animatedSpeed by animateFloatAsState(targetValue = speed.toFloat(), label = "speed")
-    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(260.dp)) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            // شريط الخلفية
-            drawArc(color.copy(alpha = 0.1f), 150f, 240f, false, style = Stroke(30f, cap = StrokeCap.Round))
-            // شريط السرعة الملون (استخدام المتغير المحضر مسبقاً)
-            drawArc(
-                brush = Brush.sweepGradient(listOf(Color.Cyan, color, Color.Magenta)),
-                startAngle = 150f,
-                sweepAngle = (animatedSpeed / 150f).coerceIn(0f, 1f) * 240f,
-                useCenter = false,
-                style = Stroke(30f, cap = StrokeCap.Round)
+            Text(
+                if (isTesting) "جاري الفحص الحقيقي..." else "ابدأ الاختبار الآن",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isTesting) Color.White.copy(alpha = 0.5f) else Color.Black
             )
         }
+    }
+}
+
+@Composable
+fun InteractiveSpeedometer(speed: Double, isTesting: Boolean) {
+    // حركة العداد السلسة
+    val animatedSpeed by animateFloatAsState(
+        targetValue = speed.toFloat(),
+        animationSpec = tween(durationMillis = 500)
+    )
+
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(300.dp)) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            // خلفية العداد الرمادية
+            drawArc(
+                color = Color.White.copy(alpha = 0.05f),
+                startAngle = 150f,
+                sweepAngle = 240f,
+                useCenter = false,
+                style = Stroke(width = 25.dp.toPx(), cap = StrokeCap.Round)
+            )
+            // شريط السرعة الملون المتفاعل
+            drawArc(
+                brush = Brush.sweepGradient(
+                    0.0f to Color(0xFF00D1FF),
+                    0.5f to Color(0xFF00FFC2),
+                    1.0f to Color(0xFF00D1FF)
+                ),
+                startAngle = 150f,
+                sweepAngle = (animatedSpeed / 200f).coerceIn(0f, 1.2f) * 240f,
+                useCenter = false,
+                style = Stroke(width = 25.dp.toPx(), cap = StrokeCap.Round)
+            )
+        }
+
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(speed.toInt().toString(), fontSize = 64.sp, fontWeight = FontWeight.Black)
-            Text("Mbps", color = Color.Gray)
+            Text(
+                text = speed.toInt().toString(),
+                fontSize = 80.sp,
+                fontWeight = FontWeight.Black,
+                color = Color.White
+            )
+            Text(
+                "Mbps",
+                fontSize = 20.sp,
+                color = Color.White.copy(alpha = 0.5f),
+                fontWeight = FontWeight.Medium
+            )
         }
     }
 }
 
 @Composable
-fun StatItem(label: String, value: String, unit: String) {
+fun QualityIndicator(label: String, value: String, unit: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, fontSize = 10.sp, color = Color.Gray)
-        Text("$value $unit", fontWeight = FontWeight.Bold)
+        Text(label, color = Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        Text("$value $unit", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
-fun DetailedSpeedView(label: String, current: Double, max: Double, avg: Double) {
-    Column {
-        Text(label, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-        Text("الآن: ${current.toInt()}", fontWeight = FontWeight.Bold)
-        Text("القمة: ${max.toInt()}", fontSize = 11.sp, color = Color.Gray)
-        Text("المتوسط: ${avg.toInt()}", fontSize = 11.sp, color = Color.Gray)
+fun SpeedStatBox(label: String, current: Double, peak: Double) {
+    Column(horizontalAlignment = Alignment.Start) {
+        Text(label, color = Color(0xFF00D1FF), fontSize = 12.sp, fontWeight = FontWeight.Black)
+        Text("${current.toInt()} Mbps", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text("PEAK: ${peak.toInt()}", color = Color.Gray, fontSize = 11.sp)
     }
 }
 
 @Composable
-fun NetworkInfoCard(result: SpeedResult?) {
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+fun NetworkCard(ip: String, isp: String) {
+    Surface(
+        color = Color.White.copy(alpha = 0.05f),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(16.dp))
-            Spacer(modifier = Modifier.width(8.dp))
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.Language, contentDescription = null, tint = Color(0xFF00D1FF))
+            Spacer(modifier = Modifier.width(12.dp))
             Column {
-                Text("IP: ${result?.ipAddress ?: "---"}", fontSize = 11.sp)
-                Text("ISP: ${result?.isp ?: "Detecting..."}", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text("IP: $ip", color = Color.White, fontSize = 12.sp)
+                Text(isp, color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp, fontWeight = FontWeight.Bold)
             }
-            Spacer(modifier = Modifier.weight(1f))
-            Text(result?.networkType ?: "UNKNOWN", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
         }
     }
 }

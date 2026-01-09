@@ -1,8 +1,6 @@
 package com.mobix.speedtest.data.repository
 
 import android.os.SystemClock
-import com.mobix.speedtest.data.local.HistoryDao
-import com.mobix.speedtest.data.local.HistoryEntity
 import com.mobix.speedtest.domain.models.SpeedResult
 import com.mobix.speedtest.domain.repository.SpeedTestRepository
 import kotlinx.coroutines.*
@@ -25,7 +23,6 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 
 class SpeedTestRepositoryImpl(
-    private val historyDao: HistoryDao
 ) : SpeedTestRepository {
 
     private val client = OkHttpClient.Builder()
@@ -104,6 +101,18 @@ class SpeedTestRepositoryImpl(
         emit(finalResult)
 
     }.flowOn(Dispatchers.IO)
+
+    override suspend fun saveResult(result: SpeedResult) {
+        TODO("Not yet implemented")
+    }
+
+    override fun getHistory(): Flow<List<SpeedResult>> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun deleteResult(result: SpeedResult) {
+        TODO("Not yet implemented")
+    }
 
     private suspend fun fetchNetworkInfo(): Pair<String, String> = withContext(Dispatchers.IO) {
         // استخدمنا رابطاً يدعم HTTPS لضمان التوافق والأمان
@@ -242,26 +251,7 @@ class SpeedTestRepositoryImpl(
     private data class PingStats(val minMs: Double, val avgMs: Double, val jitterMs: Double, val lossPercent: Double)
     private data class SpeedMeasure(val avgMbps: Double, val maxMbps: Double)
 
-    override suspend fun saveResult(result: SpeedResult) { historyDao.insertResult(result.toEntity()) }
-    override fun getHistory(): Flow<List<SpeedResult>> = historyDao.getAllHistory().map { it.map { entity -> entity.toDomain() } }
-    override suspend fun deleteResult(result: SpeedResult) { historyDao.deleteResult(result.toEntity()) }
 }
 
-// Mappers... (كما في الكود السابق)
-fun SpeedResult.toEntity() = HistoryEntity(
-    id = id, download = downloadSpeed, maxDownload = maxDownloadSpeed, avgDownload = avgDownloadSpeed,
-    upload = uploadSpeed, maxUpload = maxUploadSpeed, avgUpload = avgUploadSpeed,
-    ping = ping, jitter = jitter, packetLoss = packetLoss, bufferbloat = bufferbloat,
-    serverName = serverName, serverLocation = serverLocation, networkType = networkType,
-    ssid = ssid, isp = isp, ipAddress = ipAddress, signalStrength = signalStrength,
-    timestamp = timestamp.time
-)
 
-fun HistoryEntity.toDomain() = SpeedResult(
-    id = id, downloadSpeed = download, maxDownloadSpeed = maxDownload, avgDownloadSpeed = avgDownload,
-    uploadSpeed = upload, maxUploadSpeed = maxUpload, avgUploadSpeed = avgUpload,
-    ping = ping, jitter = jitter, packetLoss = packetLoss, bufferbloat = bufferbloat,
-    serverName = serverName, serverLocation = serverLocation, networkType = networkType,
-    ssid = ssid, isp = isp, ipAddress = ipAddress, signalStrength = signalStrength,
-    timestamp = Date(timestamp)
-)
+
