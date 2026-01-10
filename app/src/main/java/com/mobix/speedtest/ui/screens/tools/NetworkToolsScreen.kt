@@ -22,10 +22,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.mobix.speedtest.R
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,7 +41,6 @@ fun NetworkToolsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    // Load once
     LaunchedEffect(Unit) { viewModel.loadData() }
 
     Scaffold(
@@ -48,11 +49,23 @@ fun NetworkToolsScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Text(
-                        "أدوات ومعلومات الشبكة",
-                        color = Color.White,
-                        fontWeight = FontWeight.Black
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            stringResource(R.string.network_tools_title),
+                            color = Color.White,
+                            fontWeight = FontWeight.Black
+                        )
+                        Text(
+                            "${stringResource(R.string.updating_data)} ${
+                                safeText(
+                                    state.lastUpdated,
+                                    "--"
+                                )
+                            }",
+                            color = Color.White.copy(alpha = 0.55f),
+                            fontSize = 11.sp
+                        )
+                    }
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -63,10 +76,18 @@ fun NetworkToolsScreen(
                     IconButton(
                         onClick = {
                             viewModel.loadData()
-                            scope.launch { snackbarHostState.showSnackbar("جارِ تحديث البيانات...") }
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    context.getString(R.string.updating_data)
+                                )
+                            }
                         }
                     ) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = Color.White)
+                        Icon(
+                            Icons.Default.Refresh,
+                            contentDescription = "Refresh",
+                            tint = Color.White
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
@@ -84,7 +105,7 @@ fun NetworkToolsScreen(
         ) {
             item {
                 NetworkHealthCard(
-                    ssid = state.wifi?.ssid ?: "N/A",
+                    ssid = state.wifi?.ssid ?: context.getString(R.string.unknown),
                     isp = state.ispName,
                     routerIp = state.routerIp,
                     localIp = state.localIp
@@ -93,64 +114,70 @@ fun NetworkToolsScreen(
 
             item {
                 ExpandableInfoCard(
-                    title = "تفاصيل الشبكة والمزود",
-                    subtitle = "اضغط لعرض تفاصيل أكثر / نسخ القيم",
+                    title = stringResource(R.string.network_details_title),
+                    subtitle = stringResource(R.string.network_details_subtitle),
                     icon = Icons.Default.Wifi,
                     accent = Color(0xFF00D1FF)
                 ) {
                     val wifi = state.wifi
+
                     CopyDetailItem(
-                        label = "مزود الخدمة (ISP)",
-                        value = safeText(state.ispName, "N/A"),
+                        label = stringResource(R.string.isp_label),
+                        value = safeText(state.ispName, context.getString(R.string.unknown)),
                         icon = Icons.Default.Business,
                         context = context
                     ) {
-                        scope.launch { snackbarHostState.showSnackbar("تم نسخ ISP ✅") }
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                context.getString(R.string.copied_isp)
+                            )
+                        }
                     }
 
+
                     CopyDetailItem(
-                        label = "اسم الشبكة (SSID)",
-                        value = safeText(wifi?.ssid, "N/A"),
+                        label = stringResource(R.string.ssid_label),
+                        value = safeText(wifi?.ssid, context.getString(R.string.unknown)),
                         icon = Icons.Default.Wifi,
                         context = context
                     ) {
-                        scope.launch { snackbarHostState.showSnackbar("تم نسخ SSID ✅") }
+                        scope.launch { snackbarHostState.showSnackbar("SSID copied ✅") }
                     }
 
                     CopyDetailItem(
-                        label = "عنوان IP الراوتر",
-                        value = safeText(state.routerIp, "N/A"),
+                        label = stringResource(R.string.router_ip_label),
+                        value = safeText(state.routerIp, context.getString(R.string.unknown)),
                         icon = Icons.Default.Router,
                         context = context
                     ) {
-                        scope.launch { snackbarHostState.showSnackbar("تم نسخ IP الراوتر ✅") }
+                        scope.launch { snackbarHostState.showSnackbar("Router IP copied ✅") }
                     }
 
                     CopyDetailItem(
-                        label = "اسم الراوتر",
-                        value = safeText(state.routerName, "N/A"),
+                        label = stringResource(R.string.router_name_label),
+                        value = safeText(state.routerName, context.getString(R.string.unknown)),
                         icon = Icons.Default.Dns,
                         context = context
                     ) {
-                        scope.launch { snackbarHostState.showSnackbar("تم نسخ اسم الراوتر ✅") }
+                        scope.launch { snackbarHostState.showSnackbar("Router name copied ✅") }
                     }
 
                     CopyDetailItem(
-                        label = "إصدار الواي فاي",
-                        value = safeText(wifi?.routerType, "N/A"),
+                        label = stringResource(R.string.wifi_version_label),
+                        value = safeText(wifi?.routerType, context.getString(R.string.unknown)),
                         icon = Icons.Default.SettingsInputAntenna,
                         context = context
                     ) {
-                        scope.launch { snackbarHostState.showSnackbar("تم نسخ إصدار الواي فاي ✅") }
+                        scope.launch { snackbarHostState.showSnackbar("Wi-Fi version copied ✅") }
                     }
 
                     CopyDetailItem(
-                        label = "الـ IP المحلي",
-                        value = safeText(state.localIp, "N/A"),
+                        label = stringResource(R.string.local_ip_label),
+                        value = safeText(state.localIp, context.getString(R.string.unknown)),
                         icon = Icons.Default.Language,
                         context = context
                     ) {
-                        scope.launch { snackbarHostState.showSnackbar("تم نسخ IP المحلي ✅") }
+                        scope.launch { snackbarHostState.showSnackbar("Local IP copied ✅") }
                     }
                 }
             }
@@ -160,16 +187,18 @@ fun NetworkToolsScreen(
                     count = state.devices.size,
                     isScanning = state.isScanning,
                     onRescan = {
-                        viewModel.loadData() // if you have a dedicated scan, replace with viewModel.scanDevices()
-                        scope.launch { snackbarHostState.showSnackbar("إعادة الفحص...") }
+                        viewModel.loadData()
+                        scope.launch { snackbarHostState.showSnackbar("Scanning...") }
                     }
                 )
             }
 
             items(state.devices, key = { it.ip }) { device ->
+                val isRouter = device.ip == state.routerIp
                 DeviceItemImproved(
                     name = device.name,
                     ip = device.ip,
+                    isRouter = isRouter,
                     context = context,
                     onCopied = { msg ->
                         scope.launch { snackbarHostState.showSnackbar(msg) }
@@ -177,14 +206,12 @@ fun NetworkToolsScreen(
                 )
             }
 
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-            }
+            item { Spacer(modifier = Modifier.height(8.dp)) }
         }
     }
 }
 
-/* ----------------------------- Header Cards ----------------------------- */
+/* ----------------------------- Cards ----------------------------- */
 
 @Composable
 private fun NetworkHealthCard(
@@ -199,7 +226,10 @@ private fun NetworkHealthCard(
         shape = RoundedCornerShape(20.dp),
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
@@ -213,21 +243,33 @@ private fun NetworkHealthCard(
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        safeText(ssid, "N/A"),
+                        safeText(ssid, stringResource(R.string.unknown)),
                         color = Color.White,
                         fontWeight = FontWeight.Black,
                         fontSize = 16.sp
                     )
                     Text(
-                        safeText(isp, "N/A"),
+                        safeText(isp, stringResource(R.string.unknown)),
                         color = Color.White.copy(alpha = 0.55f),
                         fontSize = 12.sp
                     )
                 }
                 AssistChip(
                     onClick = { },
-                    label = { Text("LIVE", fontWeight = FontWeight.Bold, fontSize = 11.sp) },
-                    leadingIcon = { Icon(Icons.Default.Circle, contentDescription = null, modifier = Modifier.size(10.dp)) },
+                    label = {
+                        Text(
+                            stringResource(R.string.live),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Circle,
+                            contentDescription = null,
+                            modifier = Modifier.size(10.dp)
+                        )
+                    },
                     colors = AssistChipDefaults.assistChipColors(
                         containerColor = Color(0xFF00FFC2).copy(alpha = 0.16f),
                         labelColor = Color.White
@@ -237,8 +279,18 @@ private fun NetworkHealthCard(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                MiniStatBox("Router IP", safeText(routerIp, "N/A"), Icons.Default.Router, Modifier.weight(1f))
-                MiniStatBox("Local IP", safeText(localIp, "N/A"), Icons.Default.Language, Modifier.weight(1f))
+                MiniStatBox(
+                    stringResource(R.string.router_ip_label),
+                    safeText(routerIp, "N/A"),
+                    Icons.Default.Router,
+                    Modifier.weight(1f)
+                )
+                MiniStatBox(
+                    stringResource(R.string.local_ip_label),
+                    safeText(localIp, "N/A"),
+                    Icons.Default.Language,
+                    Modifier.weight(1f)
+                )
             }
         }
     }
@@ -257,11 +309,13 @@ private fun MiniStatBox(
         shape = RoundedCornerShape(16.dp),
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
     ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(icon, contentDescription = null, tint = Color(0xFF00D1FF), modifier = Modifier.size(18.dp))
+        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = Color(0xFF00D1FF),
+                modifier = Modifier.size(18.dp)
+            )
             Spacer(Modifier.width(10.dp))
             Column {
                 Text(label, color = Color.White.copy(alpha = 0.55f), fontSize = 11.sp)
@@ -271,7 +325,7 @@ private fun MiniStatBox(
     }
 }
 
-/* ----------------------------- Expandable Info Card ----------------------------- */
+/* ----------------------------- Expandable Info ----------------------------- */
 
 @Composable
 private fun ExpandableInfoCard(
@@ -311,13 +365,23 @@ private fun ExpandableInfoCard(
                         .background(accent.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
+                    Icon(
+                        icon,
+                        contentDescription = null,
+                        tint = accent,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
 
                 Spacer(Modifier.width(12.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(title, color = Color.White, fontWeight = FontWeight.Black, fontSize = 14.sp)
+                    Text(
+                        title,
+                        color = Color.White,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 14.sp
+                    )
                     Text(subtitle, color = Color.White.copy(alpha = 0.55f), fontSize = 11.sp)
                 }
 
@@ -363,10 +427,22 @@ private fun CopyDetailItem(
     ) {
         Icon(icon, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(12.dp))
-        Text(label, color = Color.Gray, fontSize = 13.sp, modifier = Modifier.weight(1f))
+        Text(
+            label,
+            color = Color.Gray,
+            fontSize = 13.sp,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+            softWrap = false,
+        )
         Text(value, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
         Spacer(Modifier.width(10.dp))
-        Icon(Icons.Default.ContentCopy, contentDescription = null, tint = Color.White.copy(alpha = 0.35f), modifier = Modifier.size(16.dp))
+        Icon(
+            Icons.Default.ContentCopy,
+            contentDescription = null,
+            tint = Color.White.copy(alpha = 0.35f),
+            modifier = Modifier.size(16.dp)
+        )
     }
 }
 
@@ -379,12 +455,9 @@ private fun DevicesHeaderRow(
     onRescan: () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "الأجهزة المتصلة ($count)",
+                stringResource(R.string.connected_devices, count),
                 color = Color(0xFF00D1FF),
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp
@@ -393,7 +466,11 @@ private fun DevicesHeaderRow(
             TextButton(onClick = onRescan) {
                 Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFF00D1FF))
                 Spacer(Modifier.width(6.dp))
-                Text("فحص", color = Color(0xFF00D1FF), fontWeight = FontWeight.Bold)
+                Text(
+                    stringResource(R.string.scan),
+                    color = Color(0xFF00D1FF),
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
 
@@ -414,10 +491,12 @@ private fun DevicesHeaderRow(
 private fun DeviceItemImproved(
     name: String,
     ip: String,
+    isRouter: Boolean,
     context: Context,
     onCopied: (String) -> Unit
 ) {
     val icon = when {
+        isRouter -> Icons.Default.Router
         name.contains("android", true) || name.contains("phone", true) -> Icons.Default.PhoneAndroid
         name.contains("tv", true) -> Icons.Default.Tv
         name.contains("laptop", true) || name.contains("pc", true) -> Icons.Default.Computer
@@ -436,12 +515,12 @@ private fun DeviceItemImproved(
                 .fillMaxWidth()
                 .combinedClickable(
                     onClick = {
-                        copyToClipboard(context, "Device IP", ip)
-                        onCopied("تم نسخ IP الجهاز ✅")
+                        copyToClipboard(context, "IP", ip)
+                        onCopied(context.getString(R.string.copied_device_ip))
                     },
                     onLongClick = {
-                        copyToClipboard(context, "Device", "$name - $ip")
-                        onCopied("تم نسخ بيانات الجهاز ✅")
+                        copyToClipboard(context, "Device", "$name • $ip")
+                        onCopied(context.getString(R.string.copied_device_data))
                     }
                 )
                 .padding(12.dp),
@@ -460,16 +539,40 @@ private fun DeviceItemImproved(
             Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    safeText(name, "Unknown device"),
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        safeText(name, context.getString(R.string.unknown_device)),
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (isRouter) {
+                        Spacer(Modifier.width(8.dp))
+                        AssistChip(
+                            onClick = { },
+                            label = {
+                                Text(
+                                    "ROUTER",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp
+                                )
+                            },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = Color(0xFF00FFC2).copy(alpha = 0.16f),
+                                labelColor = Color.White
+                            ),
+                            border = BorderStroke(1.dp, Color(0xFF00FFC2).copy(alpha = 0.25f))
+                        )
+                    }
+                }
                 Text("IP: $ip", color = Color.White.copy(alpha = 0.55f), fontSize = 12.sp)
             }
 
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.White.copy(alpha = 0.35f))
+            Icon(
+                Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.35f)
+            )
         }
     }
 }

@@ -23,9 +23,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mobix.speedtest.R
 import com.mobix.speedtest.domain.models.SpeedResult
 import java.text.SimpleDateFormat
 import java.util.*
@@ -42,8 +44,8 @@ fun ResultDetailScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    val diagnosis = remember(result) { getAiDiagnosisV2(result) }
-    val tags = remember(result) { buildSmartTags(result) }
+    val diagnosis = remember(result) { getAiDiagnosisV2(context, result) }
+    val tags = remember(result) { buildSmartTags(context, result) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -52,19 +54,27 @@ fun ResultDetailScreen(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        "تفاصيل النتيجة",
+                        stringResource(R.string.result_details),
                         color = Color.White,
                         fontWeight = FontWeight.Black
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
                     }
                 },
                 actions = {
                     IconButton(onClick = { shareAsText(context, result) }) {
-                        Icon(Icons.Default.Share, contentDescription = "Share", tint = Color.White)
+                        Icon(
+                            Icons.Default.Share,
+                            contentDescription = "Share",
+                            tint = Color.White
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
@@ -109,8 +119,12 @@ fun ResultDetailScreen(
 
             BottomActionsRow(
                 onCopy = {
-                    copyToClipboard(context, "SpeedTest", buildShareText(result))
-                    scope.launch { snackbarHostState.showSnackbar("تم نسخ النتيجة ✅") }
+                    copyToClipboard(context, "SpeedTest", buildShareText(context, result))
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            context.getString(R.string.copied_result)
+                        )
+                    }
                 },
                 onShareText = { shareAsText(context, result) },
                 onShareImage = {
@@ -177,7 +191,12 @@ private fun MainResultsCardV2(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
-                    Text("النتيجة النهائية", color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                    Text(
+                        stringResource(R.string.final_result),
+                        color = Color.White,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 16.sp
+                    )
                     Text(
                         diagnosisLevel,
                         color = diagnosisAccent,
@@ -192,7 +211,7 @@ private fun MainResultsCardV2(
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Text(
-                        "Mbps",
+                        stringResource(R.string.mbps),
                         color = Color.White.copy(alpha = 0.9f),
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp
@@ -202,7 +221,13 @@ private fun MainResultsCardV2(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            Text("DOWNLOAD", color = Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text(
+                stringResource(R.string.download),
+                color = Color.Gray,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
                     "${downloadAnim.value.roundToInt()}",
@@ -211,7 +236,11 @@ private fun MainResultsCardV2(
                     color = Color(0xFF00FFC2)
                 )
                 Spacer(Modifier.width(8.dp))
-                Text("Mbps", color = Color(0xFF00FFC2).copy(alpha = 0.65f), fontSize = 16.sp)
+                Text(
+                    stringResource(R.string.mbps),
+                    color = Color(0xFF00FFC2).copy(alpha = 0.65f),
+                    fontSize = 16.sp
+                )
             }
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -225,9 +254,24 @@ private fun MainResultsCardV2(
             Divider(modifier = Modifier.padding(vertical = 14.dp), color = Color.White.copy(alpha = 0.08f))
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                ResultSmallItemV2("UPLOAD", uploadAnim.value, "Mbps", Icons.Default.CloudUpload)
-                ResultSmallItemV2("PING", pingAnim.value, "ms", Icons.Default.Speed)
-                ResultSmallItemV2("JITTER", (result.jitter ?: 0).toFloat(), "ms", Icons.Default.Tune)
+                ResultSmallItemV2(
+                    label = stringResource(R.string.upload),
+                    value = uploadAnim.value,
+                    unit = stringResource(R.string.mbps),
+                    icon = Icons.Default.CloudUpload
+                )
+                ResultSmallItemV2(
+                    label = stringResource(R.string.ping),
+                    value = pingAnim.value,
+                    unit = stringResource(R.string.unit_ms),
+                    icon = Icons.Default.Speed
+                )
+                ResultSmallItemV2(
+                    label = stringResource(R.string.jitter),
+                    value = (result.jitter ?: 0).toFloat(),
+                    unit = stringResource(R.string.unit_ms),
+                    icon = Icons.Default.Tune
+                )
             }
         }
     }
@@ -240,9 +284,9 @@ private fun MiniBars(download: Double, upload: Double, ping: Double) {
     val pg = (1.0 - (ping / 150.0).coerceIn(0.0, 1.0)).toFloat()
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        MetricBar("Download strength", dl, Color(0xFF00FFC2))
-        MetricBar("Upload strength", ul, Color(0xFF00D1FF))
-        MetricBar("Latency quality", pg, Color(0xFFFFD60A))
+        MetricBar(stringResource(R.string.download_strength), dl, Color(0xFF00FFC2))
+        MetricBar(stringResource(R.string.upload_strength), ul, Color(0xFF00D1FF))
+        MetricBar(stringResource(R.string.latency_quality), pg, Color(0xFFFFD60A))
     }
 }
 
@@ -324,17 +368,40 @@ private fun ServerDetailsCardV2(
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        DetailRowV2("المزود (ISP)", result.isp ?: "غير معروف", Icons.Default.Business, context) {
-            scope.launch { snackbarHostState.showSnackbar("تم نسخ المزود ✅") }
+        DetailRowV2(
+            label = stringResource(R.string.isp_label),
+            value = result.isp ?: stringResource(R.string.unknown),
+            icon = Icons.Default.Business,
+            context = context
+        ) {
+            scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.copied_isp)) }
         }
-        DetailRowV2("السيرفر", "${result.serverName} (${result.serverLocation})", Icons.Default.Dns, context) {
-            scope.launch { snackbarHostState.showSnackbar("تم نسخ السيرفر ✅") }
+
+        DetailRowV2(
+            label = stringResource(R.string.server_label),
+            value = "${result.serverName} (${result.serverLocation})",
+            icon = Icons.Default.Dns,
+            context = context
+        ) {
+            scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.copied_server)) }
         }
-        DetailRowV2("التاريخ", dateStr, Icons.Default.Event, context) {
-            scope.launch { snackbarHostState.showSnackbar("تم نسخ التاريخ ✅") }
+
+        DetailRowV2(
+            label = stringResource(R.string.date_label),
+            value = dateStr,
+            icon = Icons.Default.Event,
+            context = context
+        ) {
+            scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.copied_date)) }
         }
-        DetailRowV2("الـ IP", result.ipAddress ?: "---.---.---.---", Icons.Default.Public, context) {
-            scope.launch { snackbarHostState.showSnackbar("تم نسخ الـ IP ✅") }
+
+        DetailRowV2(
+            label = stringResource(R.string.ip_label),
+            value = result.ipAddress ?: "---.---.---.---",
+            icon = Icons.Default.Public,
+            context = context
+        ) {
+            scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.copied_ip)) }
         }
     }
 }
@@ -392,7 +459,7 @@ private fun BottomActionsRow(
         ) {
             Icon(Icons.Default.ContentCopy, contentDescription = null)
             Spacer(Modifier.width(8.dp))
-            Text("نسخ", fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.copy), fontWeight = FontWeight.Bold)
         }
 
         Button(
@@ -405,7 +472,7 @@ private fun BottomActionsRow(
         ) {
             Icon(Icons.Default.Share, contentDescription = null, tint = Color.Black)
             Spacer(Modifier.width(8.dp))
-            Text("مشاركة نص", color = Color.Black, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.share_text_btn), color = Color.Black, fontWeight = FontWeight.Bold)
         }
     }
 
@@ -422,7 +489,7 @@ private fun BottomActionsRow(
         Icon(Icons.Default.Image, contentDescription = null, tint = Color.Black)
         Spacer(modifier = Modifier.width(8.dp))
         Text(
-            "مشاركة النتيجة كصورة",
+            stringResource(R.string.share_image),
             color = Color.Black,
             fontWeight = FontWeight.Bold,
             fontSize = 16.sp
@@ -440,35 +507,35 @@ private data class DiagnosisV2(
     val icon: ImageVector
 )
 
-private fun getAiDiagnosisV2(result: SpeedResult): DiagnosisV2 {
+private fun getAiDiagnosisV2(context: Context, result: SpeedResult): DiagnosisV2 {
     val dl = result.downloadSpeed
     val ping = result.ping
     return when {
         dl >= 150 && ping <= 15 -> DiagnosisV2(
-            title = "تشخيص AI: ممتاز جدًا",
-            text = "اتصال قوي جدًا للألعاب الاحترافية، بث 4K، واجتماعات فيديو بدون تقطيع.",
-            level = "EXCELLENT",
+            title = context.getString(R.string.diag_excellent_title),
+            text = context.getString(R.string.diag_excellent_text),
+            level = context.getString(R.string.level_excellent),
             accentColor = Color(0xFF00FFC2),
             icon = Icons.Default.AutoAwesome
         )
         dl >= 80 && ping <= 30 -> DiagnosisV2(
-            title = "تشخيص AI: ممتاز",
-            text = "اتصال ممتاز لمعظم الاستخدامات: بث عالي الجودة ومكالمات فيديو مستقرة.",
-            level = "GREAT",
+            title = context.getString(R.string.diag_great_title),
+            text = context.getString(R.string.diag_great_text),
+            level = context.getString(R.string.level_great),
             accentColor = Color(0xFF00D1FF),
             icon = Icons.Default.EmojiEvents
         )
         dl >= 30 -> DiagnosisV2(
-            title = "تشخيص AI: جيد",
-            text = "مناسب للتصفح والعمل اليومي. قد يظهر تأخير بسيط في الألعاب الثقيلة.",
-            level = "OK",
+            title = context.getString(R.string.diag_ok_title),
+            text = context.getString(R.string.diag_ok_text),
+            level = context.getString(R.string.level_ok),
             accentColor = Color(0xFFFFD60A),
             icon = Icons.Default.Info
         )
         else -> DiagnosisV2(
-            title = "تشخيص AI: ضعيف",
-            text = "قد تواجه بطء في التحميل أو تقطيع بالفيديو. جرّب إعادة تشغيل الراوتر أو تغيير مكانه.",
-            level = "POOR",
+            title = context.getString(R.string.diag_poor_title),
+            text = context.getString(R.string.diag_poor_text),
+            level = context.getString(R.string.level_poor),
             accentColor = Color(0xFFFF3B30),
             icon = Icons.Default.Warning
         )
@@ -477,27 +544,27 @@ private fun getAiDiagnosisV2(result: SpeedResult): DiagnosisV2 {
 
 private data class SmartTag(val text: String, val icon: ImageVector, val color: Color)
 
-private fun buildSmartTags(result: SpeedResult): List<SmartTag> {
+private fun buildSmartTags(context: Context, result: SpeedResult): List<SmartTag> {
     val tags = mutableListOf<SmartTag>()
 
     if (result.ping <= 25 && result.downloadSpeed >= 50) {
-        tags += SmartTag("Gaming Ready", Icons.Default.SportsEsports, Color(0xFF00FFC2))
+        tags += SmartTag(context.getString(R.string.tag_gaming_ready), Icons.Default.SportsEsports, Color(0xFF00FFC2))
     } else {
-        tags += SmartTag("Gaming متوسط", Icons.Default.SportsEsports, Color(0xFFFFD60A))
+        tags += SmartTag(context.getString(R.string.tag_gaming_mid), Icons.Default.SportsEsports, Color(0xFFFFD60A))
     }
 
     if (result.downloadSpeed >= 60) {
-        tags += SmartTag("4K Streaming", Icons.Default.OndemandVideo, Color(0xFF00D1FF))
+        tags += SmartTag(context.getString(R.string.tag_4k_streaming), Icons.Default.OndemandVideo, Color(0xFF00D1FF))
     } else if (result.downloadSpeed >= 25) {
-        tags += SmartTag("HD Streaming", Icons.Default.OndemandVideo, Color(0xFFFFD60A))
+        tags += SmartTag(context.getString(R.string.tag_hd_streaming), Icons.Default.OndemandVideo, Color(0xFFFFD60A))
     } else {
-        tags += SmartTag("Streaming ضعيف", Icons.Default.OndemandVideo, Color(0xFFFF3B30))
+        tags += SmartTag(context.getString(R.string.tag_streaming_poor), Icons.Default.OndemandVideo, Color(0xFFFF3B30))
     }
 
     if (result.ping <= 40 && result.downloadSpeed >= 20) {
-        tags += SmartTag("Video Calls", Icons.Default.VideoCall, Color(0xFF00D1FF))
+        tags += SmartTag(context.getString(R.string.tag_video_calls), Icons.Default.VideoCall, Color(0xFF00D1FF))
     } else {
-        tags += SmartTag("Calls قد تتقطع", Icons.Default.VideoCall, Color(0xFFFF3B30))
+        tags += SmartTag(context.getString(R.string.tag_calls_unstable), Icons.Default.VideoCall, Color(0xFFFF3B30))
     }
 
     return tags
@@ -505,29 +572,35 @@ private fun buildSmartTags(result: SpeedResult): List<SmartTag> {
 
 /* ----------------------------- Share/Copy ----------------------------- */
 
-private fun buildShareText(result: SpeedResult): String {
+private fun buildShareText(context: Context, result: SpeedResult): String {
     val dateStr = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault()).format(result.timestamp)
-    return buildString {
-        append("📶 Speed Test Result\n")
-        append("Download: ${result.downloadSpeed.roundToInt()} Mbps\n")
-        append("Upload: ${result.uploadSpeed.roundToInt()} Mbps\n")
-        append("Ping: ${result.ping} ms\n")
-        append("Jitter: ${(result.jitter ?: 0)} ms\n")
-        append("Loss: ${(result.packetLoss ?: 0.0).toInt()}%\n")
-        append("ISP: ${result.isp ?: "Unknown"}\n")
-        append("Server: ${result.serverName} (${result.serverLocation})\n")
-        append("IP: ${result.ipAddress ?: "---.---.---.---"}\n")
-        append("Date: $dateStr\n")
-    }
+
+    return context.getString(
+        R.string.share_full_template,
+        result.downloadSpeed.roundToInt(),
+        result.uploadSpeed.roundToInt(),
+        result.ping,
+        result.jitter ?: 0,
+        (result.packetLoss ?: 0.0).toInt(),
+        result.isp ?: context.getString(R.string.unknown),
+        "${result.serverName} (${result.serverLocation})",
+        result.ipAddress ?: "---.---.---.---",
+        dateStr
+    )
 }
 
 private fun shareAsText(context: Context, result: SpeedResult) {
-    val text = buildShareText(result)
+    val text = buildShareText(context, result)
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(Intent.EXTRA_TEXT, text)
     }
-    context.startActivity(Intent.createChooser(intent, "Share result"))
+    context.startActivity(
+        Intent.createChooser(
+            intent,
+            context.getString(R.string.share_chooser_title)
+        )
+    )
 }
 
 private fun copyToClipboard(context: Context, label: String, value: String) {
